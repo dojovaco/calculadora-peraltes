@@ -2,4 +2,3 @@ Plaintext
 streamlit
 pandas
 openpyxl
-numpy
