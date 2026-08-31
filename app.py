@@ -100,8 +100,6 @@ else:
 
 canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0)
 
-canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0)
-
 key_t = f'transicion_{e_max_op}'
 df_t_v = datos_globales[key_t][
     (datos_globales[key_t]['Velocidad'] == velocidad_op) & 
