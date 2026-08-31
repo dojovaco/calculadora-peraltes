@@ -100,11 +100,13 @@ else:
 
 canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0)
 
+canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0)
+
 key_t = f'transicion_{e_max_op}'
 df_t_v = datos_globales[key_t][
     (datos_globales[key_t]['Velocidad'] == velocidad_op) & 
     (datos_globales[key_t]['Canales'] == canales_op)
-].sort_values(by='Radio')
+].drop_duplicates(subset=['Radio']).sort_values(by='Radio')
 
 # Lógica de búsqueda exacta o interpolación lineal
 peralte_val_fmt = "No disponible"
@@ -203,8 +205,8 @@ st.markdown("---")
 st.subheader("Tabla de Referencia Normativa para la Velocidad Seleccionada")
 
 df_tabla_mostrar = pd.merge(
-    df_p_v[['Radio', 'Peralte_raw']],
-    df_t_v[['Radio', 'Longitud_Transicion']],
+    df_p_v[['Radio', 'Peralte_raw']].drop_duplicates(subset=['Radio']),
+    df_t_v[['Radio', 'Longitud_Transicion']].drop_duplicates(subset=['Radio']),
     on='Radio',
     how='outer'
 ).sort_values(by='Radio', ascending=False).copy()
