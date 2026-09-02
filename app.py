@@ -222,17 +222,25 @@ with col2:
 with col3:
     st.metric(label="Radio Ingresado", value=f"{radio_op} m")
 
-# Cálculo de Progresivas de Transición
+# Cálculo de Progresivas de Transición (Entrada y Salida)
 pct_tangente = 0.667 if distribucion_op == "66.7% - 33.3%" else 0.500
 
 if isinstance(long_trans, (int, float, np.number)):
     lt_en_tangente = long_trans * pct_tangente
     lt_en_curva = long_trans * (1 - pct_tangente)
+    
+    # Entrada (TE)
     prog_comienza_trans = prog_te - lt_en_tangente
     prog_peralte_pleno = prog_te + lt_en_curva
+    
+    # Salida (TS)
+    prog_deja_peralte_pleno = prog_ts - lt_en_curva
+    prog_fin_trans_salida = prog_ts + lt_en_tangente
 else:
     prog_comienza_trans = 0
     prog_peralte_pleno = 0
+    prog_deja_peralte_pleno = 0
+    prog_fin_trans_salida = 0
 
 st.subheader("📍 Progresivas Críticas de Transición (Entrada)")
 col_p1, col_p2, col_p3 = st.columns(3)
@@ -243,6 +251,16 @@ with col_p2:
     st.metric(label="Punto TE", value=formatear_progresiva(prog_te))
 with col_p3:
     st.metric(label="Alcanza Peralte Pleno", value=formatear_progresiva(prog_peralte_pleno))
+
+st.subheader("📍 Progresivas Críticas de Transición (Salida)")
+col_s1, col_s2, col_s3 = st.columns(3)
+
+with col_s1:
+    st.metric(label="Deja Peralte Pleno", value=formatear_progresiva(prog_deja_peralte_pleno))
+with col_s2:
+    st.metric(label="Punto TS", value=formatear_progresiva(prog_ts))
+with col_s3:
+    st.metric(label="Fin de Transición", value=formatear_progresiva(prog_fin_trans_salida))
 
 st.markdown("---")
 st.subheader("Tabla de Referencia Normativa para la Velocidad Seleccionada")
