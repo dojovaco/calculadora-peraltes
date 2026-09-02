@@ -9,13 +9,11 @@ st.set_page_config(page_title="Calculadora de Peraltes y Transiciones", layout="
 # Estilos CSS para mejorar la vista en teléfonos y pantallas pequeñas
 st.markdown("""
     <style>
-        /* Reducir tamaño del título principal en móviles */
         @media (max-width: 768px) {
             h1 {
                 font-size: 1.6rem !important;
             }
         }
-        /* Estilo compacto para los contenedores de métricas */
         .metric-card {
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -44,8 +42,8 @@ def cargar_datos(filepath='Peraltes.xlsx', mtime=None):
         sub_p.columns = ['Velocidad', 'Radio', 'Peralte']
         sub_p['Velocidad'] = pd.to_numeric(sub_p['Velocidad'], errors='coerce')
         sub_p['Radio'] = pd.to_numeric(sub_p['Radio'], errors='coerce')
-        sub_p['Peralte_raw'] = sub_p['Peralte'] # Guardar valor original
-        sub_p['Peralte_num'] = pd.to_numeric(sub_p['Peralte'], errors='coerce') # Para interpolar si es numérico
+        sub_p['Peralte_raw'] = sub_p['Peralte']
+        sub_p['Peralte_num'] = pd.to_numeric(sub_p['Peralte'], errors='coerce')
         sub_p.dropna(subset=['Velocidad', 'Radio'], inplace=True)
         data[f'peralte_{e_max}'] = sub_p
         
@@ -92,11 +90,9 @@ e_max_op = st.sidebar.selectbox("Peralte Máximo ($e_{max}$)", [4, 6, 8], format
 key_p = f'peralte_{e_max_op}'
 df_p_disp = datos_globales[key_p]
 
-# Seleccionar velocidad disponible para ese e_max
 velocidades_disponibles = sorted(df_p_disp['Velocidad'].unique())
 velocidad_op = st.sidebar.selectbox("Velocidad de Diseño (km/h)", velocidades_disponibles)
 
-# Filtrar radios disponibles para la velocidad elegida
 df_p_v = df_p_disp[df_p_disp['Velocidad'] == velocidad_op].sort_values(by='Radio')
 radios_norma = df_p_v['Radio'].unique()
 
@@ -115,7 +111,18 @@ else:
         step=1.0
     )
 
-canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0)
+canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0, key="select_canales_circulacion")
+
+# Inputs de Progresivas de Diseño
+st.sidebar.subheader("Progresivas de Diseño")
+prog_te = st.sidebar.number_input("Progresiva TE (Tangente de Entrada)", value=0.0, step=1.0, format="%.2f")
+prog_ts = st.sidebar.number_input("Progresiva TS (Tangente de Salida)", value=100.0, step=1.0, format="%.2f")
+
+distribucion_op = st.sidebar.selectbox(
+    "Distribución de Transición (Tangente / Curva)",
+    ["66.7% - 33.3%", "50% - 50%"],
+    index=0
+)
 
 key_t = f'transicion_{e_max_op}'
 df_t_v = datos_globales[key_t][
@@ -123,16 +130,13 @@ df_t_v = datos_globales[key_t][
     (datos_globales[key_t]['Canales'] == canales_op)
 ].drop_duplicates(subset=['Radio']).sort_values(by='Radio')
 
-# Lógica de búsqueda exacta o interpolación lineal
 peralte_val_fmt = "No disponible"
 long_trans = "No disponible"
 tipo_resultado = "Exacto"
 
-# Verificar si el radio está exactamente en la tabla
 match_p = df_p_v[df_p_v['Radio'] == radio_op]
 
 if not match_p.empty:
-    # Coincidencia exacta
     raw_p = match_p['Peralte_raw'].values[0]
     peralte_val_fmt = convertir_a_porcentaje(raw_p)
     
@@ -140,13 +144,9 @@ if not match_p.empty:
     if not match_t.empty:
         long_trans = match_t['Longitud_Transicion'].values[0]
 else:
-    # Radio no tabulado -> Interpolación Lineal
-    # Filtramos filas donde el peralte sea puramente numérico para poder interpolar
     df_num = df_p_v.dropna(subset=['Peralte_num'])
     
     if radio_op > df_num['Radio'].max() or radio_op < df_num['Radio'].min():
-        # Fuera de rango numérico (puede estar en zona de NC/RC)
-        # Tomamos el radio más cercano
         radio_cercano = min(radios_norma, key=lambda x: abs(x - radio_op))
         match_p = df_p_v[df_p_v['Radio'] == radio_cercano]
         raw_p = match_p['Peralte_raw'].values[0]
@@ -156,7 +156,6 @@ else:
         long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
         tipo_resultado = f"Aproximado (Radio más cercano: {radio_cercano} m)"
     else:
-        # Encontramos los dos radios entre los cuales cae el radio ingresado
         radios_num = df_num['Radio'].values
         r_inferior = max([r for r in radios_num if r <= radio_op], default=None)
         r_superior = min([r for r in radios_num if r >= radio_op], default=None)
@@ -170,19 +169,15 @@ else:
                 match_t = df_t_v[df_t_v['Radio'] == r_inferior]
                 long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
             else:
-                # Datos inferior y superior para peralte
                 row_inf = df_num[df_num['Radio'] == r_inferior].iloc[0]
                 row_sup = df_num[df_num['Radio'] == r_superior].iloc[0]
                 
                 e_inf = row_inf['Peralte_num']
                 e_sup = row_sup['Peralte_num']
                 
-                # Interpolación lineal de peralte
-                # A menor radio, mayor peralte (relación inversa en tablas AASHTO)
                 e_interpolado = e_inf + (e_sup - e_inf) * (radio_op - r_inferior) / (r_superior - r_inferior)
                 peralte_val_fmt = f"{e_interpolado * 100:.2f}% (Interpolado)"
                 
-                # Interpolación lineal de longitud de transición
                 match_t_inf = df_t_v[df_t_v['Radio'] == r_inferior]
                 match_t_sup = df_t_v[df_t_v['Radio'] == r_superior]
                 
@@ -202,20 +197,41 @@ else:
             long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
             tipo_resultado = f"Aproximado (Radio más cercano: {radio_cercano} m)"
 
-# Mostrar resultados en pantalla principal
 st.info(f"Modo de cálculo: **{tipo_resultado}**")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric(label="Peralte ($e$)", value=peralte_val_fmt)
+    st.metric(label="Peralte Calculado ($e$)", value=peralte_val_fmt)
 
 with col2:
     trans_val = f"{long_trans} m" if isinstance(long_trans, (int, float, np.number)) else long_trans
-    st.metric(label="Transición ($L_t$)", value=trans_val)
+    st.metric(label="Longitud de Transición ($L_t$)", value=trans_val)
 
 with col3:
-    st.metric(label="Radio", value=f"{radio_op} m")
+    st.metric(label="Radio Ingresado", value=f"{radio_op} m")
+
+# Cálculo de Progresivas de Transición
+pct_tangente = 0.667 if distribucion_op == "66.7% - 33.3%" else 0.500
+
+if isinstance(long_trans, (int, float, np.number)):
+    lt_en_tangente = long_trans * pct_tangente
+    lt_en_curva = long_trans * (1 - pct_tangente)
+    prog_comienza_trans = prog_te - lt_en_tangente
+    prog_peralte_pleno = prog_te + lt_en_curva
+else:
+    prog_comienza_trans = 0
+    prog_peralte_pleno = 0
+
+st.subheader("📍 Progresivas Críticas de Transición (Entrada)")
+col_p1, col_p2, col_p3 = st.columns(3)
+
+with col_p1:
+    st.metric(label="Inicio de Transición", value=f"{prog_comienza_trans:.2f} m")
+with col_p2:
+    st.metric(label="Punto TE", value=f"{prog_te:.2f} m")
+with col_p3:
+    st.metric(label="Alcanza Peralte Pleno", value=f"{prog_peralte_pleno:.2f} m")
 
 st.markdown("---")
 st.subheader("Tabla de Referencia Normativa para la Velocidad Seleccionada")
@@ -231,8 +247,4 @@ df_tabla_mostrar['Peralte'] = df_tabla_mostrar['Peralte_raw'].apply(convertir_a_
 df_tabla_mostrar = df_tabla_mostrar[['Radio', 'Peralte', 'Longitud_Transicion']]
 df_tabla_mostrar.columns = ['Radio (m)', 'Peralte / Condición', f'Longitud Transición ({canales_op} canales)']
 
-st.dataframe(
-    df_tabla_mostrar.reset_index(drop=True), 
-    use_container_width=True, 
-    hide_index=True  # <-- Esto elimina la columna de índices
-)
+st.dataframe(df_tabla_mostrar.reset_index(drop=True), use_container_width=True, hide_index=True)   
