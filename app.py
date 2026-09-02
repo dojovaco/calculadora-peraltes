@@ -87,10 +87,6 @@ def convertir_a_porcentaje(val):
 # Barra lateral para parámetros de diseño
 st.sidebar.header("Parámetros de Diseño")
 
-if st.sidebar.button("🔄 Recargar datos de Excel"):
-    st.cache_data.clear()
-    st.rerun()
-
 e_max_op = st.sidebar.selectbox("Peralte Máximo ($e_{max}$)", [4, 6, 8], format_func=lambda x: f"{x}%")
 
 key_p = f'peralte_{e_max_op}'
