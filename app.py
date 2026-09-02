@@ -135,22 +135,22 @@ distribucion_op = st.sidebar.selectbox(
     index=0
 )
 
-# Configuración de la pendiente inicial (bombeo de partida)
+# Configuración de la pendiente inicial (bombeo de partida desde 0%)
 st.sidebar.subheader("Condición de Sección Inicial")
 tipo_bombeo_ini = st.sidebar.selectbox(
     "Bombeo / Pendiente Inicial",
-    ["Normal Adverso (-2%)", "Plano (0%)", "Misma Pendiente (+2%)", "Personalizado"],
+    ["Plano (0%)", "Normal Adverso (-2%)", "Misma Pendiente (+2%)", "Personalizado"],
     index=0
 )
 
-if tipo_bombeo_ini == "Normal Adverso (-2%)":
-    e_ini = -0.02
-elif tipo_bombeo_ini == "Plano (0%)":
+if tipo_bombeo_ini == "Plano (0%)":
     e_ini = 0.00
+elif tipo_bombeo_ini == "Normal Adverso (-2%)":
+    e_ini = -0.02
 elif tipo_bombeo_ini == "Misma Pendiente (+2%)":
     e_ini = 0.02
 else:
-    e_ini = st.sidebar.number_input("Valor de Pendiente Inicial (%)", value=-2.0, step=0.5) / 100.0
+    e_ini = st.sidebar.number_input("Valor de Pendiente Inicial (%)", value=0.0, step=0.5) / 100.0
 
 key_t = f'transicion_{e_max_op}'
 df_t_v = datos_globales[key_t][
@@ -243,12 +243,10 @@ else:
             long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
             tipo_resultado = f"Aproximado (Radio más cercano: {radio_cercano} m)"
 
-# Ajuste automático de la Longitud de Transición según la condición inicial (AASHTO estándar asume -2%)
+# Ajuste proporcional manteniendo la misma tasa de giro de la tabla (base de 0% a e_max)
 if isinstance(long_trans, (int, float, np.number)) and e_final_num > 0:
-    cambio_estandar = abs(e_final_num - (-0.02))
-    cambio_real = abs(e_final_num - e_ini)
-    factor_ajuste = cambio_real / cambio_estandar if cambio_estandar > 0 else 1.0
-    long_trans_efectiva = round(long_trans * factor_ajuste, 2)
+    delta_cambio = abs(e_final_num - e_ini)
+    long_trans_efectiva = round((delta_cambio / e_final_num) * long_trans, 2)
 else:
     long_trans_efectiva = long_trans
 
@@ -266,7 +264,7 @@ with col2:
 with col3:
     st.metric(label="Radio Ingresado", value=f"{radio_op} m")
 
-# Cálculo de Progresivas de Transición (Entrada y Salida) con la Longitud Ajustada
+# Cálculo de Progresivas de Transición (Entrada y Salida)
 pct_tangente = 0.667 if distribucion_op == "66.7% - 33.3%" else 0.500
 
 if isinstance(long_trans_efectiva, (int, float, np.number)):
