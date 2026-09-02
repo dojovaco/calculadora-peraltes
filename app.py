@@ -26,7 +26,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🛣️ Calculadora de Peraltes")
-st.markdown("Normas AASHTO 2018 - Consulta y cálculo automático.")
+st.markdown("Normas AASHTO - Consulta y cálculo automático.")
 
 # Función para cargar y limpiar los datos de Excel con detección automática de modificaciones
 @st.cache_data
@@ -124,7 +124,7 @@ else:
 
 canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0, key="select_canales_circulacion")
 
-# Inputs de Progresivas de Diseño (en metros)
+# Inputs de Progresivas de Diseño
 st.sidebar.subheader("Progresivas de Diseño")
 prog_te = st.sidebar.number_input("Progresiva TE (Tangente de Entrada - m)", value=0.0, step=1.0, format="%.2f")
 prog_ts = st.sidebar.number_input("Progresiva TS (Tangente de Salida - m)", value=100.0, step=1.0, format="%.2f")
@@ -135,6 +135,23 @@ distribucion_op = st.sidebar.selectbox(
     index=0
 )
 
+# Configuración de la pendiente inicial (bombeo de partida)
+st.sidebar.subheader("Condición de Sección Inicial")
+tipo_bombeo_ini = st.sidebar.selectbox(
+    "Bombeo / Pendiente Inicial",
+    ["Normal Adverso (-2%)", "Plano (0%)", "Misma Pendiente (+2%)", "Personalizado"],
+    index=0
+)
+
+if tipo_bombeo_ini == "Normal Adverso (-2%)":
+    e_ini = -0.02
+elif tipo_bombeo_ini == "Plano (0%)":
+    e_ini = 0.00
+elif tipo_bombeo_ini == "Misma Pendiente (+2%)":
+    e_ini = 0.02
+else:
+    e_ini = st.sidebar.number_input("Valor de Pendiente Inicial (%)", value=-2.0, step=0.5) / 100.0
+
 key_t = f'transicion_{e_max_op}'
 df_t_v = datos_globales[key_t][
     (datos_globales[key_t]['Velocidad'] == velocidad_op) & 
@@ -144,12 +161,17 @@ df_t_v = datos_globales[key_t][
 peralte_val_fmt = "No disponible"
 long_trans = "No disponible"
 tipo_resultado = "Exacto"
+e_final_num = 0.0
 
 match_p = df_p_v[df_p_v['Radio'] == radio_op]
 
 if not match_p.empty:
     raw_p = match_p['Peralte_raw'].values[0]
     peralte_val_fmt = convertir_a_porcentaje(raw_p)
+    try:
+        e_final_num = float(raw_p)
+    except ValueError:
+        e_final_num = 0.0
     
     match_t = df_t_v[df_t_v['Radio'] == radio_op]
     if not match_t.empty:
@@ -162,6 +184,10 @@ else:
         match_p = df_p_v[df_p_v['Radio'] == radio_cercano]
         raw_p = match_p['Peralte_raw'].values[0]
         peralte_val_fmt = convertir_a_porcentaje(raw_p)
+        try:
+            e_final_num = float(raw_p)
+        except ValueError:
+            e_final_num = 0.0
         
         match_t = df_t_v[df_t_v['Radio'] == radio_cercano]
         long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
@@ -176,6 +202,10 @@ else:
                 match_p = df_num[df_num['Radio'] == r_inferior]
                 raw_p = match_p['Peralte_raw'].values[0]
                 peralte_val_fmt = convertir_a_porcentaje(raw_p)
+                try:
+                    e_final_num = float(raw_p)
+                except ValueError:
+                    e_final_num = 0.0
                 
                 match_t = df_t_v[df_t_v['Radio'] == r_inferior]
                 long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
@@ -187,6 +217,7 @@ else:
                 e_sup = row_sup['Peralte_num']
                 
                 e_interpolado = e_inf + (e_sup - e_inf) * (radio_op - r_inferior) / (r_superior - r_inferior)
+                e_final_num = e_interpolado
                 peralte_val_fmt = f"{e_interpolado * 100:.2f}% (Interpolado)"
                 
                 match_t_inf = df_t_v[df_t_v['Radio'] == r_inferior]
@@ -204,9 +235,22 @@ else:
             match_p = df_p_v[df_p_v['Radio'] == radio_cercano]
             raw_p = match_p['Peralte_raw'].values[0]
             peralte_val_fmt = convertir_a_porcentaje(raw_p)
+            try:
+                e_final_num = float(raw_p)
+            except ValueError:
+                e_final_num = 0.0
             match_t = df_t_v[df_t_v['Radio'] == radio_cercano]
             long_trans = match_t['Longitud_Transicion'].values[0] if not match_t.empty else "No disponible"
             tipo_resultado = f"Aproximado (Radio más cercano: {radio_cercano} m)"
+
+# Ajuste automático de la Longitud de Transición según la condición inicial (AASHTO estándar asume -2%)
+if isinstance(long_trans, (int, float, np.number)) and e_final_num > 0:
+    cambio_estandar = abs(e_final_num - (-0.02))
+    cambio_real = abs(e_final_num - e_ini)
+    factor_ajuste = cambio_real / cambio_estandar if cambio_estandar > 0 else 1.0
+    long_trans_efectiva = round(long_trans * factor_ajuste, 2)
+else:
+    long_trans_efectiva = long_trans
 
 st.info(f"Modo de cálculo: **{tipo_resultado}**")
 
@@ -216,18 +260,18 @@ with col1:
     st.metric(label="Peralte Calculado ($e$)", value=peralte_val_fmt)
 
 with col2:
-    trans_val = f"{long_trans} m" if isinstance(long_trans, (int, float, np.number)) else long_trans
-    st.metric(label="Longitud de Transición ($L_t$)", value=trans_val)
+    trans_val = f"{long_trans_efectiva} m" if isinstance(long_trans_efectiva, (int, float, np.number)) else long_trans_efectiva
+    st.metric(label="Longitud Ajustada ($L_t$)", value=trans_val)
 
 with col3:
     st.metric(label="Radio Ingresado", value=f"{radio_op} m")
 
-# Cálculo de Progresivas de Transición (Entrada y Salida)
+# Cálculo de Progresivas de Transición (Entrada y Salida) con la Longitud Ajustada
 pct_tangente = 0.667 if distribucion_op == "66.7% - 33.3%" else 0.500
 
-if isinstance(long_trans, (int, float, np.number)):
-    lt_en_tangente = long_trans * pct_tangente
-    lt_en_curva = long_trans * (1 - pct_tangente)
+if isinstance(long_trans_efectiva, (int, float, np.number)):
+    lt_en_tangente = long_trans_efectiva * pct_tangente
+    lt_en_curva = long_trans_efectiva * (1 - pct_tangente)
     
     # Entrada (TE)
     prog_comienza_trans = prog_te - lt_en_tangente
@@ -250,13 +294,13 @@ with col_p1:
 with col_p2:
     st.metric(label="Punto TE", value=formatear_progresiva(prog_te))
 with col_p3:
-    st.metric(label="Inicia Full Peralte", value=formatear_progresiva(prog_peralte_pleno))
+    st.metric(label="Alcanza Peralte Pleno", value=formatear_progresiva(prog_peralte_pleno))
 
 st.subheader("📍 Progresivas Críticas de Transición (Salida)")
 col_s1, col_s2, col_s3 = st.columns(3)
 
 with col_s1:
-    st.metric(label="Fin Full Peralte", value=formatear_progresiva(prog_deja_peralte_pleno))
+    st.metric(label="Deja Peralte Pleno", value=formatear_progresiva(prog_deja_peralte_pleno))
 with col_s2:
     st.metric(label="Punto TS", value=formatear_progresiva(prog_ts))
 with col_s3:
@@ -274,6 +318,6 @@ df_tabla_mostrar = pd.merge(
 
 df_tabla_mostrar['Peralte'] = df_tabla_mostrar['Peralte_raw'].apply(convertir_a_porcentaje)
 df_tabla_mostrar = df_tabla_mostrar[['Radio', 'Peralte', 'Longitud_Transicion']]
-df_tabla_mostrar.columns = ['Radio (m)', 'Peralte / Condición', f'Longitud Transición ({canales_op} canales)']
+df_tabla_mostrar.columns = ['Radio (m)', 'Peralte / Condición', f'Longitud Tabulada ({canales_op} canales)']
 
 st.dataframe(df_tabla_mostrar.reset_index(drop=True), use_container_width=True, hide_index=True)
