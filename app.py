@@ -26,7 +26,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🛣️ Calculadora de Peraltes")
-st.markdown("Normas AASHTO - Consulta y cálculo automático.")
+st.markdown("Normas AASHTO 2018 - Consulta y cálculo automático.")
 
 # Función para cargar y limpiar los datos de Excel con detección automática de modificaciones
 @st.cache_data
