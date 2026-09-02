@@ -139,7 +139,7 @@ distribucion_op = st.sidebar.selectbox(
 st.sidebar.subheader("Condición de Sección Inicial")
 tipo_bombeo_ini = st.sidebar.selectbox(
     "Bombeo / Pendiente Inicial",
-    ["Plano (0%)", "Normal Adverso (-2%)", "Misma Pendiente (+2%)", "Personalizado"],
+    ["Plano (0%)", "Bombeo (-2%)", "Bombeo (+2%)", "Personalizado"],
     index=0
 )
 
