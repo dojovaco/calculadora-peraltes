@@ -250,13 +250,13 @@ with col_p1:
 with col_p2:
     st.metric(label="Punto TE", value=formatear_progresiva(prog_te))
 with col_p3:
-    st.metric(label="Alcanza Peralte Pleno", value=formatear_progresiva(prog_peralte_pleno))
+    st.metric(label="Inicia Full Peralte", value=formatear_progresiva(prog_peralte_pleno))
 
 st.subheader("📍 Progresivas Críticas de Transición (Salida)")
 col_s1, col_s2, col_s3 = st.columns(3)
 
 with col_s1:
-    st.metric(label="Deja Peralte Pleno", value=formatear_progresiva(prog_deja_peralte_pleno))
+    st.metric(label="Fin Full Peralte", value=formatear_progresiva(prog_deja_peralte_pleno))
 with col_s2:
     st.metric(label="Punto TS", value=formatear_progresiva(prog_ts))
 with col_s3:
