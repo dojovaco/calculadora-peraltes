@@ -145,9 +145,9 @@ tipo_bombeo_ini = st.sidebar.selectbox(
 
 if tipo_bombeo_ini == "Plano (0%)":
     e_ini = 0.00
-elif tipo_bombeo_ini == "Normal Adverso (-2%)":
+elif tipo_bombeo_ini == "Bombeo (-2%)":
     e_ini = -0.02
-elif tipo_bombeo_ini == "Misma Pendiente (+2%)":
+elif tipo_bombeo_ini == "Bombeo (+2%)":
     e_ini = 0.02
 else:
     e_ini = st.sidebar.number_input("Valor de Pendiente Inicial (%)", value=0.0, step=0.5) / 100.0
