@@ -212,13 +212,14 @@ st.info(f"Modo de cálculo: **{tipo_resultado}**")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric(label="Peralte Calculado ($e$)", value=peralte_val_fmt)
+    st.metric(label="Peralte ($e$)", value=peralte_val_fmt)
 
 with col2:
-    st.metric(label="Longitud de Transición ($L_t$)", value=f"{long_trans} m" if isinstance(long_trans, (int, float, np.number)) else long_trans)
+    trans_val = f"{long_trans} m" if isinstance(long_trans, (int, float, np.number)) else long_trans
+    st.metric(label="Transición ($L_t$)", value=trans_val)
 
 with col3:
-    st.metric(label="Radio Ingresado", value=f"{radio_op} m")
+    st.metric(label="Radio", value=f"{radio_op} m")
 
 st.markdown("---")
 st.subheader("Tabla de Referencia Normativa para la Velocidad Seleccionada")
