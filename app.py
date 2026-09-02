@@ -235,4 +235,8 @@ df_tabla_mostrar['Peralte'] = df_tabla_mostrar['Peralte_raw'].apply(convertir_a_
 df_tabla_mostrar = df_tabla_mostrar[['Radio', 'Peralte', 'Longitud_Transicion']]
 df_tabla_mostrar.columns = ['Radio (m)', 'Peralte / Condición', f'Longitud Transición ({canales_op} canales)']
 
-st.dataframe(df_tabla_mostrar.reset_index(drop=True), use_container_width=True)
+st.dataframe(
+    df_tabla_mostrar.reset_index(drop=True), 
+    use_container_width=True, 
+    hide_index=True  # <-- Esto elimina la columna de índices
+)
