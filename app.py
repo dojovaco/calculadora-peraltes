@@ -82,6 +82,17 @@ def convertir_a_porcentaje(val):
     except ValueError:
         return val_str
 
+# Función para formatear progresivas en formato 0+000,00
+def formatear_progresiva(val):
+    if pd.isna(val) or not isinstance(val, (int, float, np.number)):
+        return "-"
+    signo = "-" if val < 0 else ""
+    val_abs = abs(val)
+    km = int(val_abs // 1000)
+    m = val_abs % 1000
+    m_str = f"{m:06.2f}".replace('.', ',')
+    return f"{signo}{km}+{m_str}"
+
 # Barra lateral para parámetros de diseño
 st.sidebar.header("Parámetros de Diseño")
 
@@ -113,10 +124,10 @@ else:
 
 canales_op = st.sidebar.selectbox("Canales de Circulación", [2, 4], index=0, key="select_canales_circulacion")
 
-# Inputs de Progresivas de Diseño
+# Inputs de Progresivas de Diseño (en metros)
 st.sidebar.subheader("Progresivas de Diseño")
-prog_te = st.sidebar.number_input("Progresiva TE (Tangente de Entrada)", value=0.0, step=1.0, format="%.2f")
-prog_ts = st.sidebar.number_input("Progresiva TS (Tangente de Salida)", value=100.0, step=1.0, format="%.2f")
+prog_te = st.sidebar.number_input("Progresiva TE (Tangente de Entrada - m)", value=0.0, step=1.0, format="%.2f")
+prog_ts = st.sidebar.number_input("Progresiva TS (Tangente de Salida - m)", value=100.0, step=1.0, format="%.2f")
 
 distribucion_op = st.sidebar.selectbox(
     "Distribución de Transición (Tangente / Curva)",
@@ -227,11 +238,11 @@ st.subheader("📍 Progresivas Críticas de Transición (Entrada)")
 col_p1, col_p2, col_p3 = st.columns(3)
 
 with col_p1:
-    st.metric(label="Inicio de Transición", value=f"{prog_comienza_trans:.2f} m")
+    st.metric(label="Inicio de Transición", value=formatear_progresiva(prog_comienza_trans))
 with col_p2:
-    st.metric(label="Punto TE", value=f"{prog_te:.2f} m")
+    st.metric(label="Punto TE", value=formatear_progresiva(prog_te))
 with col_p3:
-    st.metric(label="Alcanza Peralte Pleno", value=f"{prog_peralte_pleno:.2f} m")
+    st.metric(label="Alcanza Peralte Pleno", value=formatear_progresiva(prog_peralte_pleno))
 
 st.markdown("---")
 st.subheader("Tabla de Referencia Normativa para la Velocidad Seleccionada")
@@ -247,4 +258,4 @@ df_tabla_mostrar['Peralte'] = df_tabla_mostrar['Peralte_raw'].apply(convertir_a_
 df_tabla_mostrar = df_tabla_mostrar[['Radio', 'Peralte', 'Longitud_Transicion']]
 df_tabla_mostrar.columns = ['Radio (m)', 'Peralte / Condición', f'Longitud Transición ({canales_op} canales)']
 
-st.dataframe(df_tabla_mostrar.reset_index(drop=True), use_container_width=True, hide_index=True)   
+st.dataframe(df_tabla_mostrar.reset_index(drop=True), use_container_width=True, hide_index=True)
