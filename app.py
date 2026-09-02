@@ -264,11 +264,13 @@ with col2:
 with col3:
     st.metric(label="Radio Ingresado", value=f"{radio_op} m")
 
-# Cálculo de Progresivas de Transición (Entrada y Salida)
+# Cálculo de Progresivas de Transición (Entrada y Salida) con hitos intermedios
 pct_tangente = 0.667 if distribucion_op == "66.7% - 33.3%" else 0.500
 
 prog_pendiente_cero = 0.0
 prog_pendiente_dos = 0.0
+prog_salida_pendiente_cero = 0.0
+prog_salida_pendiente_dos = 0.0
 
 if isinstance(long_trans_efectiva, (int, float, np.number)):
     lt_en_tangente = long_trans_efectiva * pct_tangente
@@ -282,13 +284,25 @@ if isinstance(long_trans_efectiva, (int, float, np.number)):
     prog_deja_peralte_pleno = prog_ts - lt_en_curva
     prog_fin_trans_salida = prog_ts + lt_en_tangente
     
-    # Hitos intermedios (0% y +2%) en la entrada si se parte de pendiente adversa
+    # Hitos intermedios (0% y +2%) en la Entranda
     if (e_final_num - e_ini) != 0:
         fraccion_cero = (0.0 - e_ini) / (e_final_num - e_ini)
-        prog_pendiente_cero = prog_comienza_trans + (long_trans_efectiva * fraccion_cero)
+        if 0.0 <= fraccion_cero <= 1.0:
+            prog_pendiente_cero = prog_comienza_trans + (long_trans_efectiva * fraccion_cero)
         
         fraccion_dos = (0.02 - e_ini) / (e_final_num - e_ini)
-        prog_pendiente_dos = prog_comienza_trans + (long_trans_efectiva * fraccion_dos)
+        if 0.0 <= fraccion_dos <= 1.0:
+            prog_pendiente_dos = prog_comienza_trans + (long_trans_efectiva * fraccion_dos)
+            
+    # Hitos intermedios (0% y +2%) en la Salida
+    if (e_ini - e_final_num) != 0:
+        fraccion_cero_salida = (0.0 - e_final_num) / (e_ini - e_final_num)
+        if 0.0 <= fraccion_cero_salida <= 1.0:
+            prog_salida_pendiente_cero = prog_deja_peralte_pleno + (long_trans_efectiva * fraccion_cero_salida)
+        
+        fraccion_dos_salida = (0.02 - e_final_num) / (e_ini - e_final_num)
+        if 0.0 <= fraccion_dos_salida <= 1.0:
+            prog_salida_pendiente_dos = prog_deja_peralte_pleno + (long_trans_efectiva * fraccion_dos_salida)
 else:
     prog_comienza_trans = 0
     prog_peralte_pleno = 0
@@ -305,7 +319,7 @@ with col_p2:
 with col_p3:
     st.metric(label="Alcanza Peralte Pleno", value=formatear_progresiva(prog_peralte_pleno))
 
-# Mostrar hitos de 0% y +2% si el peralte inicial es adverso (menor a 0)
+# Mostrar hitos de 0% y +2% en la Entrada si aplican
 if e_ini < 0 and isinstance(long_trans_efectiva, (int, float, np.number)):
     st.markdown("##### Hitos Intermedios (Entrada)")
     col_h1, col_h2 = st.columns(2)
@@ -323,6 +337,15 @@ with col_s2:
     st.metric(label="Punto TS", value=formatear_progresiva(prog_ts))
 with col_s3:
     st.metric(label="Fin de Transición", value=formatear_progresiva(prog_fin_trans_salida))
+
+# Mostrar hitos de 0% y +2% en la Salida si aplican
+if e_ini < 0 and isinstance(long_trans_efectiva, (int, float, np.number)):
+    st.markdown("##### Hitos Intermedios (Salida)")
+    col_hs1, col_hs2 = st.columns(2)
+    with col_hs1:
+        st.metric(label="Pendiente Transversal +2%", value=formatear_progresiva(prog_salida_pendiente_dos))
+    with col_hs2:
+        st.metric(label="Sección Transversal 0%", value=formatear_progresiva(prog_salida_pendiente_cero))
 
 st.markdown("---")
 st.subheader("Tabla de Referencia Normativa para la Velocidad Seleccionada")
