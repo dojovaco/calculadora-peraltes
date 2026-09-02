@@ -317,7 +317,7 @@ with col_p1:
 with col_p2:
     st.metric(label="Punto TE", value=formatear_progresiva(prog_te))
 with col_p3:
-    st.metric(label="Alcanza Peralte Pleno", value=formatear_progresiva(prog_peralte_pleno))
+    st.metric(label="Inicia Peralte Máximo", value=formatear_progresiva(prog_peralte_pleno))
 
 # Mostrar hitos de 0% y +2% en la Entrada si aplican
 if e_ini < 0 and isinstance(long_trans_efectiva, (int, float, np.number)):
@@ -332,7 +332,7 @@ st.subheader("📍 Progresivas Críticas de Transición (Salida)")
 col_s1, col_s2, col_s3 = st.columns(3)
 
 with col_s1:
-    st.metric(label="Deja Peralte Pleno", value=formatear_progresiva(prog_deja_peralte_pleno))
+    st.metric(label="Fin Peralte Máximo", value=formatear_progresiva(prog_deja_peralte_pleno))
 with col_s2:
     st.metric(label="Punto TS", value=formatear_progresiva(prog_ts))
 with col_s3:
