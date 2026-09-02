@@ -6,8 +6,29 @@ import os
 # Configuración de la página
 st.set_page_config(page_title="Calculadora de Peraltes y Transiciones", layout="wide")
 
-st.title("🛣️ Calculadora de Peraltes y Transiciones v1.0")
-st.markdown("Herramienta basada en normas AASHTO para la consulta y cálculo automático por interpolación lineal.")
+# Estilos CSS para mejorar la vista en teléfonos y pantallas pequeñas
+st.markdown("""
+    <style>
+        /* Reducir tamaño del título principal en móviles */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.6rem !important;
+            }
+        }
+        /* Estilo compacto para los contenedores de métricas */
+        .metric-card {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🛣️ Calculadora de Peraltes")
+st.markdown("Normas AASHTO - Consulta y cálculo automático.")
 
 # Función para cargar y limpiar los datos de Excel con detección automática de modificaciones
 @st.cache_data
